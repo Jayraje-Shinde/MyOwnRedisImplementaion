@@ -5,6 +5,7 @@ This is my entry file
 package main
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"log"
@@ -29,18 +30,23 @@ func main() {
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
-
 	buf := make([]byte, 4096)
 	var pending []byte
 	for {
-
 		n, err := conn.Read(buf)
 		if 0 < n {
 			pending = append(pending, buf[:n]...)
-			log.Printf("%s read %d bytes : %q", conn.RemoteAddr(), n, buf[:n])
+
+			log.Print(string(pending), "\n")
 			if checkIfReadHasCRLF(pending) {
-				log.Print("Proccessed pending data : ", pending)
-				//			result := processdata()
+				result, err := processdata(pending)
+				if err != nil {
+					log.Print("Error : ", err)
+				}
+				for idx, val := range result {
+					log.Println(idx, " : ", string(val))
+				}
+
 				// implement a function in which the commands are stored in a byte buffer by breaking them
 				// using /r/n delimeter and then put it to process function which need not to process and can just print
 				// and send back msg like "printed {this command}"
@@ -56,6 +62,11 @@ func handleConnection(conn net.Conn) {
 		}
 		return
 	}
+}
+
+func processdata(data []byte) ([][]byte, error) {
+	processedData := bytes.Split(data, []byte{13, 10})
+	return processedData, nil
 }
 
 func checkIfReadHasCRLF(data []byte) bool {
